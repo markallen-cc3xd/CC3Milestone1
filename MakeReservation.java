@@ -21,7 +21,7 @@ public static void makeReservation(Visitor visitor, Museum museum) {
         // Save to SQLite database
         boolean saved = DatabaseManager.getInstance().saveReservation(visitor, chosenTime);
 
-        System.out.println("\n✅ Reservation successful for " + chosenTime);
+        System.out.println("\n Reservation successful for " + chosenTime);
         if (saved) {
             System.out.println("   (Saved to database)");
         }
@@ -29,6 +29,6 @@ public static void makeReservation(Visitor visitor, Museum museum) {
             System.out.println("   Fast entry allowed!");
         }
     } else {
-        System.out.println("\n❌ Reservation failed. Slot may be full or invalid.");
+        System.out.println("\n Reservation failed. Slot may be full or invalid.");
     }
 }
