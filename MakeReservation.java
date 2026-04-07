@@ -1,4 +1,3 @@
-// File: MakeReservation.md  (updated part)
 public static void makeReservation(Visitor visitor, Museum museum) {
     Scanner scanner = new Scanner(System.in);
 
@@ -18,7 +17,6 @@ public static void makeReservation(Visitor visitor, Museum museum) {
     boolean success = museum.reserveSlot(visitor.getName(), chosenTime);
 
     if (success) {
-        // Save to SQLite database
         boolean saved = DatabaseManager.getInstance().saveReservation(visitor, chosenTime);
 
         System.out.println("\n Reservation successful for " + chosenTime);
