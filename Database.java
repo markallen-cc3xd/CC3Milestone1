@@ -51,7 +51,6 @@ public class Database {
         } catch (Exception ignored) {}
     }
 
-    // Time Slots
     public static List<String[]> getAllTimeSlots() {
         List<String[]> slots = new ArrayList<>();
         try (Statement stmt = conn.createStatement();
@@ -87,7 +86,6 @@ public class Database {
         } catch (Exception e) {
             return false;
         }
-
         if (getBookedCount(time) >= capacity) return false;
 
         try (PreparedStatement ps = conn.prepareStatement("INSERT INTO bookings (slot_time, visitor_name) VALUES (?, ?)")) {
@@ -100,7 +98,6 @@ public class Database {
         }
     }
 
-    // Reservations
     public static void saveReservation(String name, int groupSize, String slot, String membership) {
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO reservations (name, group_size, slot, membership) VALUES (?, ?, ?, ?)")) {
@@ -141,7 +138,6 @@ public class Database {
         }
     }
 
-    // Wait Queue
     public static void addVisitorToQueue(String name, int groupSize) {
         try (PreparedStatement ps = conn.prepareStatement("INSERT INTO wait_queue (name, group_size) VALUES (?, ?)")) {
             ps.setString(1, name);
@@ -203,7 +199,6 @@ public class Database {
         }
     }
 
-    // Occupancy
     public static int getCurrentOccupancy() {
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT count FROM occupancy WHERE id=1")) {
@@ -221,4 +216,4 @@ public class Database {
             e.printStackTrace();
         }
     }
-                         }
+             }
