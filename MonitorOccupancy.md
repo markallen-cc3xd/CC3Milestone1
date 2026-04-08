@@ -1,54 +1,59 @@
+// MonitorOccupancy.java
 import java.util.Scanner;
 
 public class MonitorOccupancy {
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+    private static final int MAX_CAPACITY = 50;
 
-        int occupancy = 0;
-        int maxCapacity = 50;
-
-        while (true) {
+    public static void run(Scanner scanner) {
+        int choice;
+        do {
+            int current = Database.getCurrentOccupancy();
             System.out.println("\n--- Museum Exhibit Occupancy Tracker ---");
+            System.out.println("Current Occupancy: " + current + " / " + MAX_CAPACITY);
+
             System.out.println("1. Person ENTERED");
             System.out.println("2. Person LEFT");
             System.out.println("3. Show Occupancy");
-            System.out.println("4. Exit");
+            System.out.println("4. Back to Main Menu");
             System.out.print("Choose option: ");
-
-            int choice = scanner.nextInt();
+            choice = MakeReservation.getValidInteger(scanner);
 
             switch (choice) {
                 case 1:
-                    occupancy++;
-                    System.out.println("Person entered.");
+                    if (current < MAX_CAPACITY) {
+                        Database.updateOccupancy(current + 1);
+                        System.out.println("Person entered. Occupancy: " + (current + 1) + "/" + MAX_CAPACITY);
+                    } else {
+                        System.out.println("Exhibit is FULL! Cannot enter.");
+                    }
                     break;
 
                 case 2:
-                    if (occupancy > 0) {
-                        occupancy--;
-                        System.out.println("Person left.");
+                    if (current > 0) {
+                        Database.updateOccupancy(current - 1);
+                        System.out.println("Person left. Occupancy: " + (current - 1) + "/" + MAX_CAPACITY);
                     } else {
                         System.out.println("No one inside.");
                     }
                     break;
 
                 case 3:
-                    System.out.println("Current occupancy: " + occupancy);
-
-                    if (occupancy >= maxCapacity) {
-                        System.out.println("⚠ Exhibit is FULL!");
+                    current = Database.getCurrentOccupancy();
+                    System.out.println("Current occupancy: " + current + "/" + MAX_CAPACITY);
+                    if (current >= MAX_CAPACITY) {
+                        System.out.println("Exhibit is FULL!");
+                    } else {
+                        System.out.println("Available spots: " + (MAX_CAPACITY - current));
                     }
                     break;
 
                 case 4:
-                    System.out.println("Exiting...");
-                    scanner.close();
                     return;
 
                 default:
                     System.out.println("Invalid option.");
             }
-        }
+        } while (choice != 4);
     }
 }
