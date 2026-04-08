@@ -1,60 +1,65 @@
-import java.util.ArrayList;
+// AssignSession.java - MAIN ENTRY POINT
+import java.util.Scanner;
 
-class TimeSlot {
-    String time;
-    int capacity;
-    ArrayList<String> visitors;
+public class AssignSession {
 
-    public TimeSlot(String time, int capacity) {
-        this.time = time;
-        this.capacity = capacity;
-        visitors = new ArrayList<>();
-    }
+    public static Museum museum = new Museum();   // kept for backward compatibility with original design
 
-    public boolean addVisitor(String visitorName) {
-        if (visitors.size() < capacity) {
-            visitors.add(visitorName);
-            return true;
-        }
-        return false;
-    }
-}
-
-class Museum {
-    ArrayList<TimeSlot> slots;
-
-    public Museum() {
-        slots = new ArrayList<>();
-    }
-
-    public void addSlot(TimeSlot slot) {
-        slots.add(slot);
-    }
-
-    public void assignSlot(String visitorName) {
-        for (TimeSlot slot : slots) {
-            if (slot.addVisitor(visitorName)) {
-                System.out.println(visitorName + " assigned to time-slot: " + slot.time);
-                return;
-            }
-        }
-        System.out.println("No available time-slot for the exhibit.");
-    }
-}
-
-public class Main {
     public static void main(String[] args) {
+        Database.connect();
 
-        Museum museum = new Museum();
+        Scanner scanner = new Scanner(System.in);
+        int choice;
 
-        museum.addSlot(new TimeSlot("9:00 AM - 10:00 AM", 2));
-        museum.addSlot(new TimeSlot("10:00 AM - 11:00 AM", 2));
-        museum.addSlot(new TimeSlot("11:00 AM - 12:00 PM", 2));
+        System.out.println("========================================");
+        System.out.println("   Museum Session Management System     ");
+        System.out.println("========================================");
 
-        museum.assignSlot("Alice");
-        museum.assignSlot("Bob");
-        museum.assignSlot("Charlie");
-        museum.assignSlot("David");
-        museum.assignSlot("Emma");
+        do {
+            System.out.println("\n--- Main Menu ---");
+            System.out.println("1. Make a Reservation");
+            System.out.println("2. View Wait Time / Queue");
+            System.out.println("3. View Available Time Slots");
+            System.out.println("4. View Membership");
+            System.out.println("5. Monitor Occupancy");
+            System.out.println("6. Exit");
+            System.out.print("Enter choice: ");
+
+            choice = getValidInteger(scanner);
+
+            switch (choice) {
+                case 1:
+                    MakeReservation.run(scanner);
+                    break;
+                case 2:
+                    ViewWaitTime.run(scanner);
+                    break;
+                case 3:
+                    museum.listSlots();
+                    break;
+                case 4:
+                    ViewMembership.run(scanner);
+                    break;
+                case 5:
+                    MonitorOccupancy.run(scanner);
+                    break;
+                case 6:
+                    System.out.println("Goodbye!");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        } while (choice != 6);
+
+        scanner.close();
+        Database.close();
+    }
+
+    public static int getValidInteger(Scanner scanner) {
+        try {
+            return Integer.parseInt(scanner.nextLine().trim());
+        } catch (Exception e) {
+            return -1;
+        }
     }
 }
