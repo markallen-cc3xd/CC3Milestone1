@@ -1,83 +1,66 @@
-package meseumdb;
-import java.util.*;
-public class MeseumDB {
+package com.mycompany.museum;
 
-   
-    public static void main(String[] args) {
-      
-  
+import java.util.ArrayList;
 
-class Visitor {
-    private String name;
-    private String session;
+public class Museum {
+    private ArrayList<TimeSlot> timeSlots;
+    private ArrayList<String> reservations;
+    private DatabaseHandler dbHandler;
 
-    public Visitor(String name) {
-        this.name = name;
-        this.session = "";
+    public Museum() {
+        timeSlots = new ArrayList<>();
+        reservations = new ArrayList<>();
+        dbHandler = new DatabaseHandler();
+        dbHandler.initializeDatabase();
+        loadReservationsFromDB();
     }
 
-    public String getName() {
-        return name;
+    public void addSlot(TimeSlot slot) {
+        timeSlots.add(slot);
     }
 
-    public String getSession() {
-        return session;
+    public void displayAvailableSlots() {
+        int index = 1;
+        for (TimeSlot slot : timeSlots) {
+            int available = slot.capacity - slot.visitors.size();
+            System.out.println(index + ". " + slot.time + " - Available: " + available + "/" + slot.capacity);
+            index++;
+        }
     }
 
-    public void setSession(String session) {
-        this.session = session;
+    public boolean reserveSlot(Visitor visitor, int slotNumber) {
+        if (slotNumber < 1 || slotNumber > timeSlots.size()) {
+            return false;
+        }
+        
+        TimeSlot slot = timeSlots.get(slotNumber - 1);
+        
+        if (slot.addVisitor(visitor)) {
+            reservations.add(visitor.getName() + " - " + slot.time);
+            dbHandler.saveReservation(visitor, slot.time);
+            return true;
+        }
+        return false;
     }
-}
 
-
-    // Available sessions with capacity
-    private static Map<String, Integer> sessions = new HashMap<>();
-
-    static {
-        sessions.put("09:00 - 10:00", 5); // 5 visitors per slot
-        sessions.put("10:00 - 11:00", 5);
-        sessions.put("11:00 - 12:00", 5);
-    }
-
-    public static void assignSession(Visitor visitor) {
-        for (Map.Entry<String, Integer> entry : sessions.entrySet()) {
-            if (entry.getValue() > 0) {
-                visitor.setSession(entry.getKey());
-                sessions.put(entry.getKey(), entry.getValue() - 1); // reduce capacity
-                System.out.println(visitor.getName() + " assigned to session " + visitor.getSession());
-                return;
+    public void displayAllReservations() {
+        System.out.println("\n--- All Reservations ---");
+        if (reservations.isEmpty()) {
+            System.out.println("No reservations yet.");
+        } else {
+            for (String reservation : reservations) {
+                System.out.println(reservation);
             }
         }
-        System.out.println("No available sessions for " + visitor.getName());
+        System.out.println("\n--- Detailed View ---");
+        for (TimeSlot slot : timeSlots) {
+            slot.displayVisitors();
+        }
+        
+        dbHandler.displayAllReservations();
     }
-
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-
-        List<Visitor> visitors = new ArrayList<>();
-        System.out.println("Enter number of visitors:");
-        int n = sc.nextInt();
-        sc.nextLine(); // consume newline
-
-        for (int i = 0; i < n; i++) {
-            System.out.println("Enter visitor name:");
-            String name = sc.nextLine();
-            visitors.add(new Visitor(name));
-        }
-
-        // Assign sessions
-        for (Visitor v : visitors) {
-            assignSession(v);
-        }
-
-        // Display all assignments
-        System.out.println("\nSession Assignments:");
-        for (Visitor v : visitors) {
-            System.out.println(v.getName() + " -> " + v.getSession());
-        }
-
-        sc.close();
+    
+    private void loadReservationsFromDB() {
+        reservations = dbHandler.loadReservations();
     }
 }
-    }
-    }
