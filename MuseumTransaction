@@ -1,0 +1,216 @@
+to sayo roberto
+package com.mycompany.museum.payment;
+
+import com.mycompany.museum.Visitor;
+import com.mycompany.museum.DatabaseHandler;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
+
+public class MuseumTransaction extends PaymentFramework {
+    
+    private final String transactionId;
+    private final int slotNumber;
+    private final LocalDateTime date;
+    private int bookingId;
+    private int groupSize;
+    private double amountPerPerson;
+    private String timeSlotName;
+    private boolean isMember;
+    private DatabaseHandler dbHandler;
+    private double cashTendered = 0;
+    private double change = 0;
+    
+    public MuseumTransaction(Visitor visitor, int slotNumber, double amount, 
+                            String paymentMethod, String timeSlotName, int bookingId) {
+        super(amount, paymentMethod);
+        
+        this.transactionId = "TXN" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        this.customerName = visitor.getName();
+        this.isMember = visitor.isMember();
+        this.slotNumber = slotNumber;
+        this.date = LocalDateTime.now();
+        this.bookingId = bookingId;
+        this.timeSlotName = timeSlotName;
+        this.groupSize = visitor.getGroupSize();
+        this.amountPerPerson = this.groupSize > 0 ? amount / this.groupSize : amount;
+        this.dbHandler = new DatabaseHandler();
+    }
+    
+    @Override
+    public boolean processPayment() {
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("🎫 MUSEUM TICKET PAYMENT");
+        System.out.println("=".repeat(50));
+        System.out.println("Booking ID: " + bookingId);
+        System.out.println("Customer: " + customerName);
+        System.out.println("Member: " + (isMember ? "Yes" : "No"));
+        System.out.println("Group Size: " + groupSize);
+        System.out.printf("Amount per person: $%.2f%n", amountPerPerson);
+        System.out.printf("Subtotal: $%.2f%n", amount);
+        
+        processInvoice(this.amount);
+        
+        if (this.status.equals("COMPLETED")) {
+            
+            if (paymentMethod.equalsIgnoreCase("Cash")) {
+                java.util.Scanner scanner = new java.util.Scanner(System.in);
+                System.out.print("\n💰 Enter cash amount tendered: $");
+                try {
+                    cashTendered = scanner.nextDouble();
+                    
+                    if (cashTendered < this.amount) {
+                        System.out.println("❌ Insufficient cash!");
+                        scanner.close();
+                        return false;
+                    }
+                    
+                    change = cashTendered - this.amount;
+                    System.out.printf("💵 Change: $%.2f%n", change);
+                    
+                } catch (Exception e) {
+                    System.out.println("❌ Invalid cash amount.");
+                    scanner.close();
+                    return false;
+                }
+                scanner.close();
+            }
+            
+            boolean dbUpdated = dbHandler.updatePaymentAmount(bookingId, this.amount);
+            
+            if (dbUpdated) {
+                System.out.println("\n✅ Payment recorded!");
+                System.out.println("   Booking ID: " + bookingId);
+                System.out.printf("   Amount: $%.2f%n", this.amount);
+                if (paymentMethod.equalsIgnoreCase("Cash")) {
+                    System.out.printf("   Cash: $%.2f | Change: $%.2f%n", cashTendered, change);
+                }
+                return true;
+            } else {
+                System.out.println("\n❌ Database update failed.");
+                return false;
+            }
+        }
+        return false;
+    }
+    
+    @Override
+    public void generateReceipt() {
+        System.out.println("\n" + "=".repeat(55));
+        System.out.println("              MUSEUM RESERVATION RECEIPT");
+        System.out.println("=".repeat(55));
+        System.out.println("Transaction ID: " + transactionId);
+        System.out.println("Booking ID: " + bookingId);
+        System.out.println("Customer: " + customerName);
+        System.out.println("Date: " + date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        System.out.println("Time Slot: " + timeSlotName);
+        System.out.println("Payment Method: " + paymentMethod);
+        System.out.println("Group Size: " + groupSize);
+        System.out.printf("Amount per person: $%.2f%n", amountPerPerson);
+        System.out.printf("Total Paid: $%.2f%n", this.amount);
+        
+        if (paymentMethod.equalsIgnoreCase("Cash") && cashTendered > 0) {
+            System.out.println("-".repeat(55));
+            System.out.printf("Cash Tendered: $%.2f%n", cashTendered);
+            System.out.printf("Change: $%.2f%n", change);
+        }
+        
+        System.out.println("-".repeat(55));
+        System.out.println("Status: " + status);
+        System.out.println("=".repeat(55));
+        System.out.println("         Thank you for visiting!");
+        System.out.println("=".repeat(55));
+    }
+    
+    @Override
+    protected boolean validatePayment(double amount) {
+        if (amount <= 0) {
+            System.out.println("❌ Invalid payment amount: $" + amount);
+            return false;
+        }
+        if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
+            System.out.println("❌ Payment method not specified");
+            return false;
+        }
+        return true;
+    }
+    
+    @Override
+    protected double applyDiscount(double amount) {
+        double discounted = amount;
+        
+        if (isMember) {
+            discounted = amount * 0.8;
+            System.out.printf("🏷️ Member discount (20%%): -$%.2f%n", amount - discounted);
+        }
+        
+        if (groupSize >= 5) {
+            double beforeGroup = discounted;
+            discounted = discounted * 0.9;
+            System.out.printf("👥 Group discount (10%%): -$%.2f%n", beforeGroup - discounted);
+        }
+        
+        return discounted;
+    }
+    
+    public static void viewAllTransactions() {
+        DatabaseHandler dbHandler = new DatabaseHandler();
+        
+        System.out.println("\n" + "═".repeat(75));
+        System.out.println("                        📊 INCOME STATEMENT");
+        System.out.println("═".repeat(75));
+        
+        String sql = "SELECT booking_id, visitor_name, time_slot, group_size, " +
+                     "amount_paid, payment_status " +
+                     "FROM bookings WHERE payment_status = 'Paid' ORDER BY booking_id DESC";
+        
+        double totalRevenue = 0;
+        int paidCount = 0;
+        
+        System.out.printf("%-10s %-20s %-18s %-8s %-10s%n", 
+                         "ID", "Customer", "Time Slot", "Group", "Amount");
+        System.out.println("─".repeat(75));
+        
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:museum.db");
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                int bookingId = rs.getInt("booking_id");
+                String visitorName = rs.getString("visitor_name");
+                String timeSlot = rs.getString("time_slot");
+                int groupSize = rs.getInt("group_size");
+                double amount = rs.getDouble("amount_paid");
+                
+                System.out.printf("%-10d %-20s %-18s %-8d $%-9.2f%n", 
+                    bookingId, 
+                    visitorName.length() > 20 ? visitorName.substring(0, 17) + "..." : visitorName,
+                    timeSlot, groupSize, amount);
+                
+                totalRevenue += amount;
+                paidCount++;
+            }
+            
+        } catch (java.sql.SQLException e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+        
+        double taxAmount = totalRevenue * taxRate;
+        
+        System.out.println("─".repeat(75));
+        System.out.printf("📈 TOTAL REVENUE: $%.2f%n", totalRevenue);
+        System.out.printf("📉 TAX (12%%): $%.2f%n", taxAmount);
+        System.out.printf("💰 NET REVENUE: $%.2f%n", totalRevenue - taxAmount);
+        System.out.printf("✅ Paid Transactions: %d%n", paidCount);
+        System.out.println("═".repeat(75));
+    }
+    
+    public void printReceipt() {
+        generateReceipt();
+    }
+    
+    // Getters
+    public int getBookingId() { return bookingId; }
+    public int getGroupSize() { return groupSize; }
+    public String getTransactionId() { return transactionId; }
+}
